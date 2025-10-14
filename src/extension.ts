@@ -30,6 +30,8 @@ interface Configuration
     debugConfigurations: TaskConfiguration[];
     buildConfigurations: string[];
     platformConfigurations: string[];
+    projectConfigurations?: string[];
+    targetConfigurations?: string[];
 }
 
 const DefaultConfiguration : Configuration =
@@ -42,7 +44,9 @@ const DefaultConfiguration : Configuration =
     postBuildTasks: [],
     debugConfigurations: [],
     buildConfigurations: ["Debug", "Release"],
-    platformConfigurations: []
+    platformConfigurations: [],
+    projectConfigurations: [],
+    targetConfigurations: []
 };
 
 enum BuildState
@@ -120,6 +124,8 @@ class Extension
             'selectBuildConfiguration',
             'selectPlatformConfiguration',
             'selectDebugConfiguration',
+            'selectProjectConfiguration',
+            'selectTargetConfiguration',
             'openVisualStudio'
         ];
 
@@ -267,11 +273,64 @@ class Extension
         return this.config.debugConfigurations.find( dc => dc.name===name );
     }
 
+    get projectConfig() : string {
+        return this.getState<string>(
+            "projectConfig",
+            (val:string) => Array.isArray(this.config.projectConfigurations) && this.config.projectConfigurations.indexOf(val)!==-1,
+            (key:string) => (Array.isArray(this.config.projectConfigurations) && this.config.projectConfigurations.length > 0) ? this.config.projectConfigurations[0] : null,
+            () => Array.isArray(this.config.projectConfigurations) && this.config.projectConfigurations.length > 0
+        );
+    }
+    set projectConfig(config: string) {
+        this.context.workspaceState.update("projectConfig", config);
+        this.updateStatus();
+    }
+    get targetConfig() : string {
+        return this.getState<string>(
+            "targetConfig",
+            (val:string) => Array.isArray(this.config.targetConfigurations) && this.config.targetConfigurations.indexOf(val)!==-1,
+            (key:string) => (Array.isArray(this.config.targetConfigurations) && this.config.targetConfigurations.length > 0) ? this.config.targetConfigurations[0] : null,
+            () => Array.isArray(this.config.targetConfigurations) && this.config.targetConfigurations.length > 0
+        );
+    }
+    set targetConfig(config: string) {
+        this.context.workspaceState.update("targetConfig", config);
+        this.updateStatus();
+    }
+    public async selectProjectConfiguration() {
+        if (Array.isArray(this.config.projectConfigurations) && this.config.projectConfigurations.length > 0) {
+            let items = ["<None>", ...this.config.projectConfigurations];
+            let choice = await vscode.window.showQuickPick(items);
+            if (choice === "<None>") {
+                this.projectConfig = null;
+            } else if (choice) {
+                this.projectConfig = choice;
+            }
+        }
+    }
+    public async selectTargetConfiguration() {
+        if (Array.isArray(this.config.targetConfigurations) && this.config.targetConfigurations.length > 0) {
+            let items = ["<None>", ...this.config.targetConfigurations];
+            let choice = await vscode.window.showQuickPick(items);
+            if (choice === "<None>") {
+                this.targetConfig = null;
+            } else if (choice) {
+                this.targetConfig = choice;
+            }
+        }
+    }
+
     private updateStatus()
     {
         if( this.config )
         {
-            this.statusBar.update(this.buildConfig, this.debugConfigName, this.platformConfig);
+            this.statusBar.update(
+                this.buildConfig,
+                this.debugConfigName,
+                this.platformConfig,
+                this.projectConfig,
+                this.targetConfig
+            );
         }
         else
         {
@@ -360,12 +419,24 @@ class Extension
             `/verbosity:${this.config.verbosity}`,
             `/p:Configuration=${this.buildConfig}`,
         ];
-
-        if( this.platformConfig !== null )
-        {
+        // Use selected project/target if available
+        let project = this.projectConfig;
+        let target = this.targetConfig;
+        let projectArg = null;
+        if (project) {
+            projectArg = project;
+            if (target) {
+                projectArg = `${project}:${target}`;
+            }
+        } else if (target) {
+            projectArg = target;
+        }
+        if (projectArg) {
+            args.push(`/t:${projectArg}`);
+        }
+        if (this.platformConfig !== null) {
             args.push(`/p:Platform=${this.platformConfig}`);
         }
-
         let opts: SpawnOptions= {
             program: "${MSBUILD}",
             args: args.concat(extraArgs),
@@ -374,7 +445,6 @@ class Extension
             initChannel: false,
             parseOutput: true
         };
-
         return await this.asyncSpawn(expand(e, opts));
     }
 

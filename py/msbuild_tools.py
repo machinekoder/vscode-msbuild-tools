@@ -96,14 +96,28 @@ class project(object):
 
     def msbuild(self, *extra_args):
         args = [
-            # 'cmd.exe', '-c', 'set'
             r'${MSBUILD}',
             self.proj['solution'],
             '/m',
             '/nologo',
             '/verbosity:{}'.format(self.proj.get('verbosity', 'minimal')),
             '/p:Configuration={}'.format(self.config),
-        ] + list(extra_args)
+        ]
+        # Support projectConfigurations and targetConfigurations
+        project = self.proj.get('projectConfigurations', [])
+        target = self.proj.get('targetConfigurations', [])
+        project_arg = None
+        if project:
+            # Use the first project as default, or customize as needed
+            project_arg = project[0]
+            if target:
+                # Use the first target as default, or customize as needed
+                project_arg = '{}:{}'.format(project[0], target[0])
+        elif target:
+            project_arg = target[0]
+        if project_arg:
+            args.append('/t:{}'.format(project_arg))
+        args += list(extra_args)
         subprocess.call(self.e.expand(args), cwd=self.path, env=self.e.expand(self.env))
 
     def build(self):

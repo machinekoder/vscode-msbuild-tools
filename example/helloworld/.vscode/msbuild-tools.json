@@ -12,6 +12,15 @@
         "x64",
         "x86"
     ],
+    "projectConfigurations": [
+        "MyProject1",
+        "MyProject2"
+    ],
+    "targetConfigurations": [
+        "Build",
+        "Rebuild",
+        "Clean"
+    ],
     "preBuildTasks": [
         {
             "name": "Print a message",

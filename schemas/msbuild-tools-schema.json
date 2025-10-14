@@ -73,6 +73,18 @@
                 "type": "string"
             }
         },
+        "projectConfigurations": {
+            "type": "array",
+            "items": {
+                "type": "string"
+            }
+        },
+        "targetConfigurations": {
+            "type": "array",
+            "items": {
+                "type": "string"
+            }
+        },
         "debugConfigurations": { 
             "$ref": "#/definitions/tasks" 
         },

@@ -25,6 +25,11 @@ export class StatusBar
     private killStatusItem =
         vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Left, 5.00);
 
+    private projectConfigStatusItem =
+        vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Left, 5.025);
+    private targetConfigStatusItem =
+        vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Left, 5.023);
+
     constructor()
     {
         this.buildStatusItem.command = "msbuild-tools.build";
@@ -51,13 +56,20 @@ export class StatusBar
         this.killStatusItem.command = "msbuild-tools.kill";
         this.killStatusItem.tooltip = "Click to kill current build";
         this.killStatusItem.text = "$(x)";
+
+        this.projectConfigStatusItem.command = "msbuild-tools.selectProjectConfiguration";
+        this.projectConfigStatusItem.tooltip = "Click to select the project configuration";
+        this.targetConfigStatusItem.command = "msbuild-tools.selectTargetConfiguration";
+        this.targetConfigStatusItem.tooltip = "Click to select the target configuration";
     }
 
     public forAllItems(f: (item:vscode.StatusBarItem)=>void)
     {
-        f(this.buildStatusItem);
+        f(this.projectConfigStatusItem);
+        f(this.targetConfigStatusItem);
         f(this.buildConfigStatusItem);
         f(this.buildPlatformStatusItem);
+        f(this.buildStatusItem);
         f(this.debugStatusItem);
         f(this.runStatusItem);
         f(this.debugConfigStatusItem);
@@ -79,12 +91,13 @@ export class StatusBar
         this.forAllItems(i => i.hide());
     }
 
-    public update(buildConfig: string, debugConfig:string, platformConfig:string)
+    public update(buildConfig: string, debugConfig:string, platformConfig:string, projectConfig?:string, targetConfig?:string)
     {
         this.buildConfigStatusItem.text = buildConfig;
         this.buildPlatformStatusItem.text = platformConfig;
         this.debugConfigStatusItem.text = debugConfig;
-
+        this.projectConfigStatusItem.text = projectConfig || "";
+        this.targetConfigStatusItem.text = targetConfig || "";
         this.forAllItems( (i) => 
         {
             if( debugConfig === null && ( i===this.debugStatusItem || i===this.runStatusItem || i===this.debugConfigStatusItem ) )
@@ -92,6 +105,14 @@ export class StatusBar
                 i.hide();
             }
             else if( platformConfig === null && i===this.buildPlatformStatusItem )
+            {
+                i.hide();
+            }
+            else if( !projectConfig && i===this.projectConfigStatusItem )
+            {
+                i.hide();
+            }
+            else if( !targetConfig && i===this.targetConfigStatusItem )
             {
                 i.hide();
             }
