@@ -1,3 +1,7 @@
+## 0.0.13
+
+- Implemented project support
+
 # Change Log
 All notable changes to the "vscode-msbuild-tools" extension will be documented in this file.
 
